@@ -22,7 +22,7 @@ Code for "Taxonomy Driven Fast Adversarial Training" (AAAI 2024)
 
 ### CIFAR10/CIFAR100/TinyImageNet/ImageNet100
 
-- These folders store the corresponding training log.
+- These folders store training logs and outputs for the respective datasets.
 
 ## Trained Models
 [Checkpoint on CIFAR-10 with our method](https://drive.google.com/file/d/1fPYwjz2V9wibfdWlopip0tfK4IB0KS9o/view?usp=drive_link)
