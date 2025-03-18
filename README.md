@@ -26,3 +26,17 @@ Code for "Taxonomy Driven Fast Adversarial Training" (AAAI 2024)
 
 ## Trained Models
 [Checkpoint on CIFAR-10 with our method](https://drive.google.com/file/d/1fPYwjz2V9wibfdWlopip0tfK4IB0KS9o/view?usp=drive_link)
+
+## Citation
+If you are insterested in this work, please consider citing:
+
+```bibtex
+@inproceedings{tong2024taxonomy,
+  title={Taxonomy driven fast adversarial training},
+  author={Tong, Kun and Jiang, Chengze and Gui, Jie and Cao, Yuan},
+  booktitle={Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume={38},
+  number={6},
+  pages={5233--5242},
+  year={2024}
+}
