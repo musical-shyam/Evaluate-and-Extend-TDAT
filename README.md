@@ -1,6 +1,10 @@
-# Taxonomy Driven Fast Adversarial Training
+# Evaluating and Extending Taxonomy Driven Fast Adversarial Training
 
-Code for "Taxonomy Driven Fast Adversarial Training" (AAAI 2024)
+Code for CS 680A: AI Security Final Project
+
+## Contributors
+- Sai Manikandan
+- Shyam Kannan (musical-shyam)
 
 ## Environments
 
