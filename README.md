@@ -8,17 +8,21 @@ Code for CS 680A: AI Security Final Project
 
 ## Environments
 
-- python 3.7.13
-- torch 1.13.1
-- torchvision 0.13
+- python 3.7.13 (changed)
+- torch 1.13.1 (changed)
+- torchvision 0.13 (changed)
 
 ## Files
 
 ### TDAT.py
 
-- Train ResNet18 on CIFAR-10 with our proposed TDAT.
+- Train ResNet18 on CIFAR-10 with TDAT.
 
-`python TDAT.py --batch-m 0.75 --delta-init "random" --out-dir "TDAT" --log "CIFAR10.log" --model "ResNet18" --lamda 0.6 --inner-gamma 0.15 --outer-gamma 0.15 --save-epoch 1`
+`python TDAT.py --batch-m 0.75 --delta-init "random" --out-dir "TDAT" --log "CIFAR10.log" --model "ResNet18" --lamda 0.6 --inner-gamma 0.15 --outer-gamma 0.15 --save-epoch 1 --dataset CIFAR10`
+
+- Train DeiT on CIFAR-100 with TDAT.
+
+`python TDAT.py --batch-m 0.75 --delta-init "random" --out-dir "CIFAR100" --log "DeiT.log" --model "Deit-Small" --lamda 0.6 --inner-gamma 0.15 --outer-gamma 0.15 --save-epoch 1 --dataset CIFAR100`
 
 ### models
 
