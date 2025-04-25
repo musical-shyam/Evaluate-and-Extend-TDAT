@@ -15,3 +15,4 @@ from .mobilenetv2 import *
 from .efficientnet import *
 from .regnet import *
 from .wide_resnet import *
+from deit_small import *
