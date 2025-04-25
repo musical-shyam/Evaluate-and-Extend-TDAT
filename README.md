@@ -22,7 +22,7 @@ Code for CS 680A: AI Security Final Project
 
 - Train DeiT on CIFAR-100 with TDAT.
 
-`python TDAT.py --batch-m 0.75 --delta-init "random" --out-dir "CIFAR100" --log "DeiT.log" --model "Deit-Small" --lamda 0.6 --inner-gamma 0.15 --outer-gamma 0.15 --save-epoch 1 --dataset CIFAR100`
+`python TDAT.py --batch-m 0.75 --delta-init "random" --out-dir "CIFAR100" --log "DeiT.log" --model "DeiT-Small" --lamda 0.6 --inner-gamma 0.15 --outer-gamma 0.15 --save-epoch 1 --dataset CIFAR100`
 
 ### models
 
