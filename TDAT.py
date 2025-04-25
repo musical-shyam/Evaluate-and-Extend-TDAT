@@ -14,6 +14,7 @@ from utils import *
 import math
 
 logger = logging.getLogger(__name__)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -30,6 +31,7 @@ def get_args():
     parser.add_argument('--momentum', default=0.9, type=float)
     parser.add_argument('--seed', default=0, type=int, help='Random seed')
     parser.add_argument("--save-epoch", default=111,type=int)
+    parser.add_argument('--dataset', default='CIFAR100',choices=['CIFAR10', 'CIFAR100'], help='which dataset to train on')
     # TDAT
     parser.add_argument('--inner-gamma', default=0.15, type=float, help='Label relaxation factor')
     parser.add_argument('--outer-gamma', default=0.15, type=float)
@@ -47,9 +49,9 @@ def get_args():
 
 
 
-def label_relaxation(label, factor):
-    one_hot = np.eye(10)[label.cuda().data.cpu().numpy()] 
-    result = one_hot * factor + (one_hot - 1.) * ((factor - 1) / float(10 - 1))
+def label_relaxation(label, factor, num_classes):
+    one_hot = np.eye(num_classes)[label.to(device).data.cpu().numpy()] 
+    result = one_hot * factor + (one_hot - 1.) * ((factor - 1) / float(num_classes - 1))
     return result
 
 
@@ -72,7 +74,13 @@ def main():
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
 
-    train_loader, test_loader = cifar10_get_loaders(args.data_dir, args.batch_size)
+    if args.dataset == 'CIFAR10':
+        train_loader, test_loader = cifar10_get_loaders(args.data_dir, args.batch_size)
+        num_classes = 10
+    elif args.dataset == 'CIFAR100':
+        train_loader, test_loader = cifar100_get_loaders(args.data_dir, args.batch_size)
+        num_classes = 100
+        
     epsilon = (args.epsilon / 255.) / std
     alpha = (args.alpha / 255.) / std
 
@@ -86,8 +94,11 @@ def main():
         model = WideResNet()
     elif args.model == "ResNet34":
         model = ResNet34()
+    elif args.model == "DeiT-Small":
+        model = DeiT_Small_P4_32(num_classes=num_classes)
+        
     model=torch.nn.DataParallel(model)
-    model = model.cuda()
+    model = model.to(device)
     model.train()
     opt = torch.optim.SGD(model.parameters(), lr=args.lr_max, momentum=args.momentum, weight_decay=args.weight_decay)
 
@@ -113,7 +124,7 @@ def main():
 
     # momentum batch initialization
     temp = torch.rand(batch_size,3,32,32)
-    momentum = torch.zeros(batch_size,3,32,32).cuda()
+    momentum = torch.zeros(batch_size,3,32,32).to(device)
     for j in range(len(epsilon)):
         momentum[:, j, :, :].uniform_(-epsilon[j][0][0].item(), epsilon[j][0][0].item())
     momentum = clamp(alpha * torch.sign(momentum), -epsilon, epsilon)
@@ -136,12 +147,12 @@ def main():
         for _, (X, y) in enumerate(train_loader):
 
             delta = momentum
-            X = X.cuda()
-            y = y.cuda()
+            X = X.to(device)
+            y = y.to(device)
             batch_size = X.shape[0]
 
             if X.shape[0] == args.batch_size:
-                relaxtion_label = torch.tensor(label_relaxation(y, inner_gammas)).cuda()
+                relaxtion_label = torch.tensor(label_relaxation(y, inner_gammas, num_classes)).to(device)
                 delta.requires_grad = True
                 ori_output = model(X + delta)
                 
@@ -183,15 +194,18 @@ def main():
         lr = scheduler.get_last_lr()[0]
         
         if args.model == "VGG":
-            model_test = VGG('VGG19').cuda()
+            model_test = VGG('VGG19').to(device)
         elif args.model == "ResNet18":
-            model_test = ResNet18().cuda()
+            model_test = ResNet18().to(device)
         elif args.model == "PreActResNest18":
-            model_test = PreActResNet18().cuda()
+            model_test = PreActResNet18().to(device)
         elif args.model == "WideResNet":
-            model_test = WideResNet().cuda()
+            model_test = WideResNet().to(device)
         elif args.model == "ResNet34":
-            model_test = ResNet34().cuda()
+            model_test = ResNet34().to(device)
+        elif args.model == "DeiT-Small":
+            model_test = DeiT_Small_P4_32().to(device)
+            
         model_test = torch.nn.DataParallel(model_test)
         model_test.load_state_dict(model.state_dict())
         model_test.float()
@@ -205,7 +219,7 @@ def main():
         logger.info('%d \t %.1f \t \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f',
                     epoch, epoch_time - start_epoch_time, lr,inner_loss/train_n, train_loss / train_n, train_acc / train_n, test_loss, test_acc, pgd_loss, pgd_acc)
         # save checkpoints
-        ckpt_name = args.model + "_CIFAR10_TDAT_robustAcc_" + str(pgd_acc) + "_clean_acc_" + str(test_acc) + ".pt"  
+        ckpt_name = args.model + "_" + args.dataset + "_TDAT_robustAcc_" + str(pgd_acc) + "_clean_acc_" + str(test_acc) + ".pt"  
         if epoch >= args.save_epoch:
             torch.save({
                 'epoch': epoch,

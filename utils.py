@@ -13,13 +13,14 @@ import copy
 
 import torch.optim as optim
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # cifar10_mean = (0.4914, 0.4822, 0.4465)
 # cifar10_std = (0.2471, 0.2435, 0.2616)
 cifar10_mean = (0.0, 0.0, 0.0)
 cifar10_std = (1.0, 1.0, 1.0)
-mu = torch.tensor(cifar10_mean).view(3, 1, 1).cuda()
-std = torch.tensor(cifar10_std).view(3, 1, 1).cuda()
+mu = torch.tensor(cifar10_mean).view(3, 1, 1).to(device)
+std = torch.tensor(cifar10_std).view(3, 1, 1).to(device)
 
 upper_limit = ((1 - mu) / std)
 lower_limit = ((0 - mu) / std)
@@ -65,12 +66,35 @@ def cifar10_get_loaders(dir_, batch_size):
     )
     return train_loader, test_loader
 
+cifar100_mean = (0.5071, 0.4865, 0.4409)
+cifar100_std  = (0.2673, 0.2564, 0.2761)
+
+def cifar100_get_loaders(dir_, batch_size):
+    train_tf = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(cifar100_mean, cifar100_std),
+    ])
+    test_tf = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(cifar100_mean, cifar100_std),
+    ])
+    train_set = datasets.CIFAR100(dir_, train=True,
+                                  transform=train_tf, download=True)
+    test_set  = datasets.CIFAR100(dir_, train=False,
+                                  transform=test_tf , download=True)
+    train_loader = data.DataLoader(train_set, batch_size, shuffle=True,
+                                   num_workers=0, pin_memory=True)
+    test_loader  = data.DataLoader(test_set , batch_size, shuffle=False,
+                                   num_workers=0, pin_memory=True)
+    return train_loader, test_loader
 
 def attack_pgd(model, X, y, epsilon, alpha, attack_iters, restarts):
-    max_loss = torch.zeros(y.shape[0]).cuda()
-    max_delta = torch.zeros_like(X).cuda()
+    max_loss = torch.zeros(y.shape[0]).to(device)
+    max_delta = torch.zeros_like(X).to(device)
     for zz in range(restarts):
-        delta = torch.zeros_like(X).cuda()
+        delta = torch.zeros_like(X).to(device)
         for i in range(len(epsilon)):
             delta[:, i, :, :].uniform_(-epsilon[i][0][0].item(), epsilon[i][0][0].item())
         delta.data = clamp(delta, lower_limit - X, upper_limit - X)
@@ -102,7 +126,7 @@ def evaluate_pgd(test_loader, model, attack_iters, restarts, epsilon=(8 / 255.) 
     n = 0
     model.eval()
     for i, (X, y) in enumerate(test_loader):
-        X, y = X.cuda(), y.cuda()
+        X, y = X.to(device), y.to(device)
         pgd_delta = attack_pgd(model, X, y, epsilon, alpha, attack_iters, restarts)
         with torch.no_grad():
             output = model(normalize(X + pgd_delta))
@@ -115,10 +139,10 @@ def evaluate_pgd(test_loader, model, attack_iters, restarts, epsilon=(8 / 255.) 
 
 def attack_fgsm(model, X, y, epsilon, alpha, restarts):
     attack_iters = 1
-    max_loss = torch.zeros(y.shape[0]).cuda()
-    max_delta = torch.zeros_like(X).cuda()
+    max_loss = torch.zeros(y.shape[0]).to(device)
+    max_delta = torch.zeros_like(X).to(device)
     for zz in range(restarts):
-        delta = torch.zeros_like(X).cuda()
+        delta = torch.zeros_like(X).to(device)
         for i in range(len(epsilon)):
             delta[:, i, :, :].uniform_(-epsilon[i][0][0].item(), epsilon[i][0][0].item())
         delta.data = clamp(delta, lower_limit - X, upper_limit - X)
@@ -151,7 +175,7 @@ def evaluate_fgsm(test_loader, model, restarts):
     n = 0
     model.eval()
     for i, (X, y) in enumerate(test_loader):
-        X, y = X.cuda(), y.cuda()
+        X, y = X.to(device), y.to(device)
         pgd_delta = attack_fgsm(model, X, y, epsilon, alpha, restarts)
         with torch.no_grad():
             output = model(X + pgd_delta)
@@ -169,7 +193,7 @@ def evaluate_standard(test_loader, model):
     model.eval()
     with torch.no_grad():
         for i, (X, y) in enumerate(test_loader):
-            X, y = X.cuda(), y.cuda()
+            X, y = X.to(device), y.to(device)
             output = model(X)
             loss = F.cross_entropy(output, y)
             test_loss += loss.item() * y.size(0)
@@ -186,10 +210,10 @@ def CW_loss(x, y):
 
 
 def cw_Linf_attack(model, X, y, epsilon, alpha, attack_iters, restarts):
-    max_loss = torch.zeros(y.shape[0]).cuda()
-    max_delta = torch.zeros_like(X).cuda()
+    max_loss = torch.zeros(y.shape[0]).to(device)
+    max_delta = torch.zeros_like(X).to(device)
     for zz in range(restarts):
-        delta = torch.zeros_like(X).cuda()
+        delta = torch.zeros_like(X).to(device)
         for i in range(len(epsilon)):
             delta[:, i, :, :].uniform_(-epsilon[i][0][0].item(), epsilon[i][0][0].item())
         delta.data = clamp(delta, lower_limit - X, upper_limit - X)
@@ -223,7 +247,7 @@ def evaluate_pgd_cw(test_loader, model, attack_iters, restarts):
     n = 0
     model.eval()
     for i, (X, y) in enumerate(test_loader):
-        X, y = X.cuda(), y.cuda()
+        X, y = X.to(device), y.to(device)
         pgd_delta = cw_Linf_attack(model, X, y, epsilon, alpha, attack_iters=attack_iters, restarts=restarts)
         with torch.no_grad():
             output = model(X + pgd_delta)
@@ -242,7 +266,7 @@ def get_variable(inputs, cuda=False, **kwargs):
     if type(inputs) in [list, np.ndarray]:
         inputs = torch.Tensor(inputs)
     if cuda:
-        out = Variable(inputs.cuda(), **kwargs)
+        out = Variable(inputs.to(device), **kwargs)
     else:
         out = Variable(inputs, **kwargs)
     return out
