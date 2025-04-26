@@ -9,7 +9,7 @@ from torchvision import datasets, transforms
 import torch
 import torch.nn.functional as F
 import torch.utils.data as data
-import copy
+import copy, csv
 
 import torch.optim as optim
 
@@ -270,3 +270,108 @@ def get_variable(inputs, cuda=False, **kwargs):
     else:
         out = Variable(inputs, **kwargs)
     return out
+
+def log_tdat_metrics(epoch, model, train_loader, test_loader, 
+                     model_name, dataset_name, total_epochs, storage=[]):
+    """
+    Log taxonomy case counts and accuracies for the given epoch. 
+    Append results to storage, and save to CSV when final epoch is reached.
+    """
+    device = next(model.parameters()).device  # use model's device (CPU/GPU)
+    was_training = model.training
+    model.eval()  # set model to eval for inference
+
+    # Initialize counters for Cases 1-5
+    case_counts = [0, 0, 0, 0, 0]  # indices 0->Case1, 1->Case2, ..., 4->Case5
+
+    # Loop over training data to categorize each sample
+    for inputs, labels in train_loader:
+        inputs, labels = inputs.to(device), labels.to(device)
+        # Clean prediction
+        outputs_clean = model(inputs)
+        pred_clean = outputs_clean.argmax(dim=1)
+        # Adversarial example generation (e.g., single-step FGSM)
+        inputs_adv = inputs.clone().detach().requires_grad_(True)
+        # Compute loss and gradient for FGSM
+        loss = F.cross_entropy(model(inputs_adv), labels)
+        model.zero_grad()
+        loss.backward()
+        # FGSM step: perturb inputs in the direction of gradient sign
+        epsilon = 8/255.0  # example perturbation size (adjust as needed)
+        inputs_adv = inputs_adv + epsilon * inputs_adv.grad.sign()
+        inputs_adv = torch.clamp(inputs_adv, 0.0, 1.0)  # keep in valid range
+        inputs_adv = inputs_adv.detach()
+        # Adversarial prediction
+        outputs_adv = model(inputs_adv)
+        pred_adv = outputs_adv.argmax(dim=1)
+        # Tally cases for each sample in the batch
+        for j in range(labels.size(0)):
+            y_true = labels[j]
+            pc = pred_clean[j]
+            pa = pred_adv[j]
+            if pc == y_true:
+                if pa == y_true:
+                    case_counts[1] += 1  # Case 2: clean correct, adv also correct
+                else:
+                    case_counts[0] += 1  # Case 1: clean correct, adv misclassified
+            else:  # clean prediction is wrong
+                if pa == y_true:
+                    case_counts[3] += 1  # Case 4: clean wrong, adv flips to correct
+                elif pa == pc:
+                    case_counts[2] += 1  # Case 3: clean wrong, adv still predicts same wrong class
+                else:
+                    case_counts[4] += 1  # Case 5: clean wrong, adv misclassified to a different wrong class
+
+    # Compute clean accuracy on test set
+    clean_correct = 0
+    total_test = len(test_loader.dataset)
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            preds = model(inputs).argmax(dim=1)
+            clean_correct += (preds == labels).sum().item()
+    clean_acc = 100.0 * clean_correct / total_test
+
+    # Compute robust accuracy on test set (e.g., PGD-10 attack for robustness)
+    robust_correct = 0
+    # Example PGD-10 attack loop
+    for inputs, labels in test_loader:
+        inputs, labels = inputs.to(device), labels.to(device)
+        # Perform a 10-step PGD attack on inputs
+        X_adv = inputs.clone().detach()
+        epsilon = 8/255.0
+        alpha = 2/255.0
+        X_adv += 0  # just to ensure X_adv exists
+        for _ in range(10):  # 10 PGD iterations
+            X_adv.requires_grad_(True)
+            loss = F.cross_entropy(model(X_adv), labels)
+            model.zero_grad()
+            loss.backward()
+            # Gradient ascent step
+            X_adv = X_adv + alpha * X_adv.grad.sign()
+            # Project perturbation onto epsilon-ball
+            delta = torch.clamp(X_adv - inputs, min=-epsilon, max=epsilon)
+            X_adv = torch.clamp(inputs + delta, 0.0, 1.0).detach()
+        # Evaluate model on adversarial inputs
+        preds_adv = model(X_adv).argmax(dim=1)
+        robust_correct += (preds_adv == labels).sum().item()
+    robust_acc = 100.0 * robust_correct / total_test
+
+    # Store this epoch's results (epoch index + 1 for human-readable epoch number)
+    storage.append([epoch + 1, *case_counts, clean_acc, robust_acc])
+
+    # If this is the last epoch, save all logged data to CSV
+    if epoch + 1 == total_epochs:  
+        filename = f"TDAT_{model_name}_{dataset_name}_{total_epochs}epochs_results.csv"
+        with open(filename, 'w', newline='') as f:
+            writer = csv.writer(f)
+            # Write header
+            writer.writerow(["Epoch", "Case1", "Case2", "Case3", "Case4", "Case5", 
+                             "CleanAccuracy", "RobustAccuracy"])
+            # Write each epoch's data row
+            writer.writerows(storage)
+        print(f"[TDAT] Saved analysis data to {filename}")
+
+    # Restore model training mode if it was in training mode
+    if was_training:
+        model.train()

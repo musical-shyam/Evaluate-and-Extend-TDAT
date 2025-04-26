@@ -227,6 +227,7 @@ def main():
                 'optimizer_state_dict': opt.state_dict(),
                 'loss': train_loss/train_n
             },os.path.join(args.out_dir, ckpt_name))
+        log_tdat_metrics(epoch, model, train_loader, test_loader, model_name="DeiTS", dataset_name="CIFAR100", total_epochs=args.save_epoch)
     logger.info(epoch_clean_list)
     logger.info(epoch_pgd_list)
 
