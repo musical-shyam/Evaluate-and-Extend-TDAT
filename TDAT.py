@@ -13,12 +13,25 @@ from torch.autograd import Variable
 from utils import *
 import math
 
+import torch.distributed as dist
+import os
+
+
+def setup_distributed():
+    dist.init_process_group(backend="nccl", init_method="env://")
+    global rank
+    rank = dist.get_rank()
+    local_rank = int(os.environ["LOCAL_RANK"])
+    torch.cuda.set_device(local_rank)
+    print(f"Distributed initialized! Rank: {rank}, World Size: {dist.get_world_size()}")
+    return local_rank
+
 logger = logging.getLogger(__name__)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', default='ResNet18', type=str, help='model name')
+    parser.add_argument('--model', default='DeiT-Small', type=str, help='model name')
     parser.add_argument('--batch-size', default=128, type=int)
     parser.add_argument('--data-dir', default='./data', type=str)
     parser.add_argument('--epochs', default=110, type=int)
@@ -26,7 +39,7 @@ def get_args():
     parser.add_argument('--milestone1', default=100, type=int)
     parser.add_argument('--milestone2', default=105, type=int)
     parser.add_argument('--lr-min', default=0., type=float)
-    parser.add_argument('--lr-max', default=0.1, type=float)
+    parser.add_argument('--lr-max', default=0.000125, type=float)
     parser.add_argument('--weight-decay', default=5e-4, type=float)
     parser.add_argument('--momentum', default=0.9, type=float)
     parser.add_argument('--seed', default=0, type=int, help='Random seed')
@@ -43,24 +56,29 @@ def get_args():
     parser.add_argument('--alpha', default=8, type=float, help='Step size')
     parser.add_argument('--delta-init', default='random', choices=['zero', 'random', 'previous', 'normal'], help='Perturbation initialization method')
     # ouput
-    parser.add_argument('--out-dir', default='TDAT', type=str, help='Output directory')
-    parser.add_argument('--log', default="output.log", type=str)
+    parser.add_argument('--out-dir', default='DeiT-Small-lr_small-Cifar100-out', type=str, help='Output directory')
+    parser.add_argument('--log', default="DeiT-Small-lr_small-Cifar100.log", type=str)
     return parser.parse_args()
 
 
 
-def label_relaxation(label, factor, num_classes):
+def label_relaxation(device,label, factor, num_classes):
     one_hot = np.eye(num_classes)[label.to(device).data.cpu().numpy()] 
     result = one_hot * factor + (one_hot - 1.) * ((factor - 1) / float(num_classes - 1))
     return result
 
 
 def main():
+    local_rank = setup_distributed()   # <--- ADD this
     args = get_args()
+    device = torch.device(f"cuda:{local_rank}")
+
+
+    mu, std, upper_limit, lower_limit = get_mu_std_limits(device)
 
     output_path = args.out_dir
     if not os.path.exists(output_path):
-        os.makedirs(output_path)
+        os.makedirs(output_path,exist_ok=True)
     logfile = os.path.join(output_path, args.log)
 
     logging.basicConfig(
@@ -68,21 +86,26 @@ def main():
         datefmt='%Y/%m/%d %H:%M:%S',
         level=logging.INFO,
         filename=os.path.join(output_path, args.log))
-    logger.info(args)
+    if rank == 0:
+
+        logger.info(args)
 
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
 
     if args.dataset == 'CIFAR10':
-        train_loader, test_loader = cifar10_get_loaders(args.data_dir, args.batch_size)
+        train_loader, test_loader = cifar10_get_loaders(args.data_dir, args.batch_size, distributed=True)
         num_classes = 10
     elif args.dataset == 'CIFAR100':
-        train_loader, test_loader = cifar100_get_loaders(args.data_dir, args.batch_size)
-        num_classes = 100
-        
+        train_loader, test_loader = cifar100_get_loaders(args.data_dir, args.batch_size, distributed=True)
+        num_classes =100
+
     epsilon = (args.epsilon / 255.) / std
     alpha = (args.alpha / 255.) / std
+
+    epsilon = epsilon.to(device)
+    alpha = alpha.to(device)
 
     if args.model == "VGG":
         model = VGG('VGG19')
@@ -97,8 +120,9 @@ def main():
     elif args.model == "DeiT-Small":
         model = DeiT_Small_P4_32(num_classes=num_classes)
         
-    model=torch.nn.DataParallel(model)
     model = model.to(device)
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
+
     model.train()
     opt = torch.optim.SGD(model.parameters(), lr=args.lr_max, momentum=args.momentum, weight_decay=args.weight_decay)
 
@@ -117,10 +141,28 @@ def main():
                                                          gamma=0.1)
 
     # Training
-    logger.info('Epoch \t Seconds \t LR \t Inner Loss \t Train Loss \t Train Acc \t Test Loss \t Test Acc \t PGD Loss \t PGD Acc')
+    # logger.info('Epoch \t Seconds \t LR \t Inner Loss \t Train Loss \t Train Acc \t Test Loss \t Test Acc \t PGD Loss \t PGD Acc')
+    # best_result = 0
+    # epoch_clean_list = []
+    # epoch_pgd_list = []
+    
+    if rank == 0:
+
+        logger.info('Epoch \t Seconds \t LR \t Inner Loss \t Train Loss \t Train Acc \t Test Loss \t Test Acc \t PGD Loss \t PGD Acc \t Case4_pct \t FGSM Loss \t FGSM Acc \t C&W Loss \t C&W Acc')
     best_result = 0
     epoch_clean_list = []
     epoch_pgd_list = []
+    epoch_fgsm_list=[]
+    epoch_cw_list=[]
+
+
+    case1_list=[]
+    case2_list=[]
+    case3_list=[]
+    case4_list=[]
+    case5_list=[]
+
+
 
     # momentum batch initialization
     temp = torch.rand(batch_size,3,32,32)
@@ -152,11 +194,13 @@ def main():
             batch_size = X.shape[0]
 
             if X.shape[0] == args.batch_size:
-                relaxtion_label = torch.tensor(label_relaxation(y, inner_gammas, num_classes)).to(device)
+                relaxtion_label = torch.tensor(label_relaxation(device,y, inner_gammas, num_classes)).to(device)
                 delta.requires_grad = True
                 ori_output = model(X + delta)
                 
                 ori_loss = nn.CrossEntropyLoss()(ori_output, relaxtion_label.float())
+                # ori_loss = F.kl_div(F.log_softmax(ori_output, dim=1), relaxtion_label.float(), reduction='batchmean')
+
                 
                 ori_loss.backward(retain_graph=True)
                 x_grad = delta.grad.detach()
@@ -172,6 +216,7 @@ def main():
 
                 logits = ori_output
                 output = model(X + delta)
+
 
                 loss_adv = nn.CrossEntropyLoss(label_smoothing=(1.0-outer_gammas))(output, y)
 
@@ -206,30 +251,66 @@ def main():
         elif args.model == "DeiT-Small":
             model_test = DeiT_Small_P4_32().to(device)
             
-        model_test = torch.nn.DataParallel(model_test)
+        model_test = model_test.to(device)
+        model_test = torch.nn.parallel.DistributedDataParallel(model_test, device_ids=[local_rank])
         model_test.load_state_dict(model.state_dict())
         model_test.float()
         model_test.eval()
+        test_loss, test_acc,clean_preds, labels= evaluate_standard(device,test_loader, model_test)
 
-        pgd_loss, pgd_acc = evaluate_pgd(test_loader, model_test, 10, 1)
-        test_loss, test_acc = evaluate_standard(test_loader, model_test)
+        pgd_loss, pgd_acc, case1_pct, case2_pct, case3_pct, case4_pct, case5_pct  = evaluate_pgd(device,test_loader, model_test,clean_preds, labels, 10, 1,epsilon)
+
+        # print("sum is",case1_pct+case2_pct+case3_pct+case4_pct+case5_pct)
+        fgsm_loss, fgsm_acc = evaluate_fgsm(device,test_loader, model_test, restarts=1)
+        cw_loss, cw_acc = evaluate_pgd_cw(device,test_loader, model_test, attack_iters=10, restarts=1)
+
         epoch_clean_list.append(test_acc)
         epoch_pgd_list.append(pgd_acc)
+        epoch_fgsm_list.append(fgsm_acc)
+        epoch_cw_list.append(cw_acc)
 
-        logger.info('%d \t %.1f \t \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f',
-                    epoch, epoch_time - start_epoch_time, lr,inner_loss/train_n, train_loss / train_n, train_acc / train_n, test_loss, test_acc, pgd_loss, pgd_acc)
-        # save checkpoints
-        ckpt_name = args.model + "_" + args.dataset + "_TDAT_robustAcc_" + str(pgd_acc) + "_clean_acc_" + str(test_acc) + ".pt"  
-        if epoch >= args.save_epoch:
+        case1_list.append(case1_pct)
+        case2_list.append(case2_pct)
+        case3_list.append(case3_pct)
+        case4_list.append(case4_pct)
+        case5_list.append(case5_pct)
+
+
+        # logger.info('%d \t %.1f \t \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f',
+        #             epoch, epoch_time - start_epoch_time, lr,inner_loss/train_n, train_loss / train_n, train_acc / train_n, test_loss, test_acc, pgd_loss, pgd_acc)
+        if rank == 0:
+
+            logger.info('%d \t %.1f \t \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f',
+                epoch, epoch_time - start_epoch_time, lr, inner_loss/train_n, train_loss / train_n, train_acc / train_n,
+                test_loss, test_acc, pgd_loss, pgd_acc, case4_pct,fgsm_loss, fgsm_acc, cw_loss, cw_acc)
+
+        
+
+            # save checkpoints
+            ckpt_name = f"{args.model}_{args.dataset}_epoch_{epoch}_robustAcc_{pgd_acc:.4f}_cleanAcc_{test_acc:.4f}.pt"
+
+            # ckpt_name = args.model + "_" + args.dataset + "epoch"+epoch+ "_TDAT_robustAcc_" + str(pgd_acc) + "_clean_acc_" + str(test_acc) + ".pt"  
+            # if epoch >= args.save_epoch:
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': model_test.state_dict(),
                 'optimizer_state_dict': opt.state_dict(),
                 'loss': train_loss/train_n
             },os.path.join(args.out_dir, ckpt_name))
-        log_tdat_metrics(epoch, model, train_loader, test_loader, model_name="DeiTS", dataset_name="CIFAR100", total_epochs=args.save_epoch)
-    logger.info(epoch_clean_list)
-    logger.info(epoch_pgd_list)
+        
+    if rank ==0:
+        logger.info(epoch_clean_list)
+        logger.info(epoch_pgd_list)
+        logger.info(epoch_fgsm_list)
+        logger.info(epoch_cw_list)
+
+        logger.info(case1_list)
+        logger.info(case2_list)
+        logger.info(case3_list)
+        logger.info(case4_list)
+        logger.info(case5_list)
+
+
 
 
 if __name__ == "__main__":
