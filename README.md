@@ -24,6 +24,10 @@ Code for CS 680A: AI Security Final Project
 
 `python TDAT.py --batch-m 0.75 --delta-init "random" --out-dir "CIFAR100" --log "DeiT.log" --model "DeiT-Small" --lamda 0.6 --inner-gamma 0.15 --outer-gamma 0.15 --save-epoch 1 --dataset CIFAR100`
 
+- Train ResNet18 on CIFAR-100 with AT.
+
+`python AT.py --delta-init "random" --out-dir "AT" --log "CIFAR100.log" --model "ResNet18" --save-epoch 1 --dataset CIFAR100`
+
 ### models
 
 - This folder holds the codes for backbones.
