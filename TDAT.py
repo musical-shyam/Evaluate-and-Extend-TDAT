@@ -57,12 +57,12 @@ def label_relaxation(label, factor, num_classes):
 
 def main():
     args = get_args()
-
+    
     output_path = args.out_dir
     if not os.path.exists(output_path):
         os.makedirs(output_path)
     logfile = os.path.join(output_path, args.log)
-
+    print('device:', device)
     logging.basicConfig(
         format='[%(asctime)s] - %(message)s',
         datefmt='%Y/%m/%d %H:%M:%S',
@@ -143,7 +143,7 @@ def main():
         if inner_gammas < args.inner_gamma:
             inner_gammas = args.inner_gamma
             outer_gammas = args.outer_gamma
-
+    
         for _, (X, y) in enumerate(train_loader):
 
             delta = momentum
