@@ -141,6 +141,10 @@ def main():
 
             opt.zero_grad()
             loss.backward()
+            
+            # Gradient clipping 
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            
             opt.step()
             scheduler.step()
 

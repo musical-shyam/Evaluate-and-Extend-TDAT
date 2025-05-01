@@ -182,7 +182,10 @@ def main():
                 loss = loss_adv + float(args.lamda) * loss_robust
                 opt.zero_grad()
                 loss.backward()
-
+               
+                # Gradient clipping 
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                
                 opt.step()
                 inner_loss += ori_loss.item() * y.size(0)
                 train_loss += loss.item() * y.size(0)
