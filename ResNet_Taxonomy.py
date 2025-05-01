@@ -86,6 +86,7 @@ with open('pgd_evaluation.csv', 'w', newline='') as csvfile:
         case4_pct.append(c4)
         case5_pct.append(c5)
         
+        print(f" Timestamp:{now_ts} Time Elapsed:{elapsed} Epoch:{ep} PGD Accuracy:{pgd_accuracy * 100:.2f}%")
         # Log to CSV
         writer.writerow([now_ts, f"{elapsed:.2f}",ep, pgd_accuracy * 100, c1, c2, c3, c4, c5])
 
