@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 from models import *
 from utils import *
 
+import time
+from datetime import datetime
+
 # Use GPU if available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -50,7 +53,7 @@ case5_pct = []
 # Open CSV log file
 with open('pgd_evaluation.csv', 'w', newline='') as csvfile:
     writer = csv.writer(csvfile)
-    writer.writerow(['Epoch', 'PGD_Acc', 'Case1_pct', 'Case2_pct', 'Case3_pct', 'Case4_pct', 'Case5_pct'])
+    writer.writerow(['Timestamp', 'Eval_Time_s', 'Epoch', 'PGD_Acc', 'Case1_pct', 'Case2_pct', 'Case3_pct', 'Case4_pct', 'Case5_pct'])
     # Evaluate each selected checkpoint
     for ep in selected_epochs:
         fname = epoch_to_file[ep]
@@ -68,11 +71,13 @@ with open('pgd_evaluation.csv', 'w', newline='') as csvfile:
             new_state[new_key] = val
         model.load_state_dict(new_state)
         
+        start = time.time()
         # Evaluate on clean and adversarial test data
         _, clean_acc, clean_preds, true_labels = evaluate_standard(test_loader, model)
         pgd_loss, pgd_accuracy, c1, c2, c3, c4, c5 = evaluate_pgd(
             test_loader, model, clean_preds, true_labels, attack_iters=10, restarts=1)
-        
+        elapsed = time.time() - start
+        now_ts = datetime.now().isoformat(timespec='seconds')
         # Store results (convert to percentages)
         robust_acc.append(pgd_accuracy * 100)
         case1_pct.append(c1)
@@ -82,7 +87,7 @@ with open('pgd_evaluation.csv', 'w', newline='') as csvfile:
         case5_pct.append(c5)
         
         # Log to CSV
-        writer.writerow([ep, pgd_accuracy * 100, c1, c2, c3, c4, c5])
+        writer.writerow([now_ts, f"{elapsed:.2f}",ep, pgd_accuracy * 100, c1, c2, c3, c4, c5])
 
 # 4. Plot robust accuracy vs. epoch
 plt.figure(figsize=(6,4))
