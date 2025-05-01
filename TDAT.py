@@ -117,7 +117,7 @@ def main():
                                                          gamma=0.1)
 
     # Training
-    logger.info('Epoch \t Seconds \t LR \t Inner Loss \t Train Loss \t Train Acc \t Test Loss \t Test Acc \t PGD Loss \t PGD Acc')
+    logger.info('Epoch \t Seconds \t LR \t Inner Loss \t Train Loss \t Train Acc \t Test Loss \t Test Acc \t PGD Loss \t PGD Acc \t FGSM Loss \t FGSM Acc \t CW Loss \t CW Acc \t Case1 \t Case2 \t Case3 \t Case4 \t Case5')
     best_result = 0
     epoch_clean_list = []
     epoch_pgd_list = []
