@@ -1,0 +1,12 @@
+[2025/05/01 04:13:49] - Namespace(model='DeiT-Small', batch_size=128, data_dir='./data', epochs=1, lr_schedule='multistep', milestone1=100, milestone2=105, lr_min=0.0, lr_max=0.1, weight_decay=0.0005, momentum=0.9, seed=0, save_epoch=1, dataset='CIFAR100', epsilon=8, alpha=8, delta_init='random', out_dir='AT', log='Deit_AT.log')
+[2025/05/01 04:13:51] - Epoch 	 Seconds 	 	 LR 	 	 Inner Loss 	 Train Loss 	 Train Acc 	 	 Test Loss 	 Test Acc 	 	 PGD Loss 	 PGD Acc 	 FGSM Loss 	 FGSM Acc 	 CW Loss 	 CW Acc 	 	 Case1 	 Case2 	 Case3 	 Case4 	 Case5
+[2025/05/01 04:22:50] - 0 	 210.3 	 	 0.1000 	 	4.3362 	 4.3543 	 0.0247 	 	 3.9940 	 0.0813 	 	 4.0307 	 0.0210 	 4.0397 	 0.0307 	 4.0116 	 0.0118 	 	 6.0300 	 2.1000 	 89.0700 	 0.0000 	 2.8000
+[2025/05/01 04:22:50] - [0.0813]
+[2025/05/01 04:22:50] - [0.021]
+[2025/05/01 04:22:50] - [0.0307]
+[2025/05/01 04:22:50] - [0.0118]
+[2025/05/01 04:22:50] - [6.03]
+[2025/05/01 04:22:50] - [2.1]
+[2025/05/01 04:22:50] - [89.07000000000001]
+[2025/05/01 04:22:50] - [0.0]
+[2025/05/01 04:22:50] - [2.8000000000000003]

@@ -18,15 +18,15 @@ Code for CS 680A: AI Security Final Project
 
 - Train ResNet18 on CIFAR-10 with TDAT.
 
-`python TDAT.py --batch-m 0.75 --delta-init "random" --out-dir "TDAT" --log "CIFAR10.log" --model "ResNet18" --lamda 0.6 --inner-gamma 0.15 --outer-gamma 0.15 --save-epoch 1 --dataset CIFAR10`
+`python TDAT.py --epochs 2 --batch-m 0.75 --delta-init "random" --out-dir "TDAT" --log "CIFAR10.log" --model "ResNet18" --lamda 0.6 --inner-gamma 0.15 --outer-gamma 0.15 --save-epoch 1 --dataset CIFAR10`
 
 - Train DeiT on CIFAR-100 with TDAT.
 
-`python TDAT.py --batch-m 0.75 --delta-init "random" --out-dir "CIFAR100" --log "DeiT.log" --model "DeiT-Small" --lamda 0.6 --inner-gamma 0.15 --outer-gamma 0.15 --save-epoch 1 --dataset CIFAR100`
+`python TDAT.py --epochs 2 --batch-m 0.75 --delta-init "random" --out-dir "CIFAR100" --log "DeiT.log" --model "DeiT-Small" --lamda 0.6 --inner-gamma 0.15 --outer-gamma 0.15 --save-epoch 1 --dataset CIFAR100`
 
 - Train ResNet18 on CIFAR-100 with AT.
 
-`python AT.py --delta-init "random" --out-dir "AT" --log "CIFAR100.log" --model "ResNet18" --save-epoch 1 --dataset CIFAR100`
+`python AT.py --epochs 1 --delta-init "random" --out-dir "AT" --log "Deit_AT.log" --model "DeiT-Small" --save-epoch 1 --dataset CIFAR100`
 
 ### models
 
