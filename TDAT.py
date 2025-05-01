@@ -117,7 +117,7 @@ def main():
                                                          gamma=0.1)
 
     # Training
-    logger.info('Epoch \t Seconds \t LR \t Inner Loss \t Train Loss \t Train Acc \t Test Loss \t Test Acc \t PGD Loss \t PGD Acc \t FGSM Loss \t FGSM Acc \t CW Loss \t CW Acc \t Case1 \t Case2 \t Case3 \t Case4 \t Case5')
+    logger.info('Epoch \t Seconds \t \t LR \t \t Inner Loss \t Train Loss \t Train Acc \t \t Test Loss \t Test Acc \t \t PGD Loss \t PGD Acc \t FGSM Loss \t FGSM Acc \t CW Loss \t CW Acc \t \t Case1 \t Case2 \t Case3 \t Case4 \t Case5')
     best_result = 0
     epoch_clean_list = []
     epoch_pgd_list = []
@@ -240,7 +240,7 @@ def main():
         case4_list.append(case4_pct)
         case5_list.append(case5_pct)
 
-        logger.info('%d \t %.1f \t \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f',
+        logger.info('%d \t %.1f \t \t %.4f \t \t%.4f \t %.4f \t %.4f \t \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f',
                     epoch, epoch_time - start_epoch_time, lr,inner_loss/train_n, train_loss / train_n, train_acc / train_n, test_loss, test_acc, pgd_loss, pgd_acc, fgsm_loss, fgsm_acc, cw_loss, cw_acc, case1_pct, case2_pct, case3_pct, case4_pct, case5_pct)
         # save checkpoints
         ckpt_name = args.model + "_" + args.dataset + "_TDAT_robustAcc_" + str(pgd_acc) + "_clean_acc_" + str(test_acc) + ".pt"  
