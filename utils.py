@@ -66,8 +66,10 @@ def cifar10_get_loaders(dir_, batch_size):
     )
     return train_loader, test_loader
 
-cifar100_mean = (0.5071, 0.4865, 0.4409)
-cifar100_std  = (0.2673, 0.2564, 0.2761)
+# cifar100_mean = (0.5071, 0.4865, 0.4409)
+# cifar100_std  = (0.2673, 0.2564, 0.2761)
+cifar100_mean = (0.0, 0.0, 0.0)
+cifar100_std = (1.0, 1.0, 1.0)
 
 def cifar100_get_loaders(dir_, batch_size):
     train_tf = transforms.Compose([
@@ -119,22 +121,60 @@ def attack_pgd(model, X, y, epsilon, alpha, attack_iters, restarts):
     return max_delta
 
 
-def evaluate_pgd(test_loader, model, attack_iters, restarts, epsilon=(8 / 255.) / std):
+def evaluate_pgd(test_loader, model, clean_preds, true_labels, attack_iters, restarts, epsilon=(8 / 255.) / std):
     alpha = (2 / 255.) / std
     pgd_loss = 0
     pgd_acc = 0
     n = 0
+    
+    case1 = 0
+    case2 = 0
+    case3 = 0
+    case4 = 0
+    case5 = 0
+    
+    pgd_preds_list = []
+    
     model.eval()
     for i, (X, y) in enumerate(test_loader):
         X, y = X.to(device), y.to(device)
         pgd_delta = attack_pgd(model, X, y, epsilon, alpha, attack_iters, restarts)
         with torch.no_grad():
             output = model(normalize(X + pgd_delta))
+            
+            pred = output.argmax(dim=1)
+            pgd_preds_list.append(pred)
+            
             loss = F.cross_entropy(output, y)
             pgd_loss += loss.item() * y.size(0)
             pgd_acc += (output.max(1)[1] == y).sum().item()
             n += y.size(0)
-    return pgd_loss / n, pgd_acc / n
+    
+    pgd_preds = torch.cat(pgd_preds_list, dim=0)
+    
+    for i in range(len(true_labels)):
+        clean_correct = (clean_preds[i] == true_labels[i]).item()
+        pgd_correct = (pgd_preds[i] == true_labels[i]).item()
+
+        if clean_correct and not pgd_correct:
+            case1 += 1
+        elif clean_correct and pgd_correct:
+            case2 += 1
+        elif not clean_correct:
+            if pgd_preds[i] == clean_preds[i]:
+                case3 += 1
+            elif pgd_preds[i] == true_labels[i]:
+                case4 += 1
+            else:
+                case5 += 1
+                
+    total_samples = len(true_labels)
+    case1_pct = case1 / total_samples * 100
+    case2_pct = case2 / total_samples * 100
+    case3_pct = case3 / total_samples * 100
+    case4_pct = case4 / total_samples * 100
+    case5_pct = case5 / total_samples * 100
+    return pgd_loss / n, pgd_acc / n, case1_pct, case2_pct, case3_pct, case4_pct, case5_pct
 
 
 def attack_fgsm(model, X, y, epsilon, alpha, restarts):
@@ -190,16 +230,29 @@ def evaluate_standard(test_loader, model):
     test_loss = 0
     test_acc = 0
     n = 0
+    
+    all_clean_preds = []
+    all_labels = []
+    
     model.eval()
     with torch.no_grad():
         for i, (X, y) in enumerate(test_loader):
             X, y = X.to(device), y.to(device)
             output = model(X)
+            
+            pred =  output.argmax(dim=1)
+            all_clean_preds.append(pred)
+            all_labels.append(y)
+            
             loss = F.cross_entropy(output, y)
             test_loss += loss.item() * y.size(0)
             test_acc += (output.max(1)[1] == y).sum().item()
             n += y.size(0)
-    return test_loss / n, test_acc / n
+    
+    clean_preds = torch.cat(all_clean_preds, dim=0)
+    labels = torch.cat(all_labels, dim=0)
+    
+    return test_loss / n, test_acc / n, clean_preds, labels
 
 
 def CW_loss(x, y):

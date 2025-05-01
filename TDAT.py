@@ -121,6 +121,15 @@ def main():
     best_result = 0
     epoch_clean_list = []
     epoch_pgd_list = []
+    epoch_fgsm_list=[]
+    epoch_cw_list=[]
+
+
+    case1_list=[]
+    case2_list=[]
+    case3_list=[]
+    case4_list=[]
+    case5_list=[]
 
     # momentum batch initialization
     temp = torch.rand(batch_size,3,32,32)
@@ -214,25 +223,44 @@ def main():
         model_test.float()
         model_test.eval()
 
-        pgd_loss, pgd_acc = evaluate_pgd(test_loader, model_test, 10, 1)
-        test_loss, test_acc = evaluate_standard(test_loader, model_test)
+        test_loss, test_acc, clean_preds, labels = evaluate_standard(test_loader, model_test)
+        pgd_loss, pgd_acc, case1_pct, case2_pct, case3_pct, case4_pct, case5_pct = evaluate_pgd(test_loader, model_test,clean_preds,labels, 10, 1)
+        
+        fgsm_loss, fgsm_acc = evaluate_fgsm(test_loader, model_test, 1, 1)
+        cw_loss, cw_acc = evaluate_pgd_cw(test_loader, model_test, 10, 1)
+        
         epoch_clean_list.append(test_acc)
         epoch_pgd_list.append(pgd_acc)
+        epoch_fgsm_list.append(fgsm_acc)
+        epoch_cw_list.append(cw_acc)
+        
+        case1_list.append(case1_pct)
+        case2_list.append(case2_pct)
+        case3_list.append(case3_pct)
+        case4_list.append(case4_pct)
+        case5_list.append(case5_pct)
 
-        logger.info('%d \t %.1f \t \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f',
-                    epoch, epoch_time - start_epoch_time, lr,inner_loss/train_n, train_loss / train_n, train_acc / train_n, test_loss, test_acc, pgd_loss, pgd_acc)
+        logger.info('%d \t %.1f \t \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f',
+                    epoch, epoch_time - start_epoch_time, lr,inner_loss/train_n, train_loss / train_n, train_acc / train_n, test_loss, test_acc, pgd_loss, pgd_acc, fgsm_loss, fgsm_acc, cw_loss, cw_acc, case1_pct, case2_pct, case3_pct, case4_pct, case5_pct)
         # save checkpoints
         ckpt_name = args.model + "_" + args.dataset + "_TDAT_robustAcc_" + str(pgd_acc) + "_clean_acc_" + str(test_acc) + ".pt"  
-        if epoch >= args.save_epoch:
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model_test.state_dict(),
-                'optimizer_state_dict': opt.state_dict(),
-                'loss': train_loss/train_n
-            },os.path.join(args.out_dir, ckpt_name))
-        log_tdat_metrics(epoch, model, train_loader, test_loader, model_name="DeiTS", dataset_name="CIFAR100", total_epochs=args.save_epoch)
+        
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model_test.state_dict(),
+            'optimizer_state_dict': opt.state_dict(),
+            'loss': train_loss/train_n
+        },os.path.join(args.out_dir, ckpt_name))
+            
     logger.info(epoch_clean_list)
     logger.info(epoch_pgd_list)
+    logger.info(epoch_fgsm_list)
+    logger.info(epoch_cw_list)
+    logger.info(case1_list)
+    logger.info(case2_list)
+    logger.info(case3_list)
+    logger.info(case4_list)
+    logger.info(case5_list)
 
 
 if __name__ == "__main__":
