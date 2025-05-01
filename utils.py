@@ -147,7 +147,7 @@ def evaluate_pgd(test_loader, model, clean_preds, true_labels, attack_iters, res
             
             loss = F.cross_entropy(output, y)
             pgd_loss += loss.item() * y.size(0)
-            pgd_acc += (output.max(1)[1] == y).sum().item()
+            pgd_acc += (pred == y).sum().item()
             n += y.size(0)
     
     pgd_preds = torch.cat(pgd_preds_list, dim=0)

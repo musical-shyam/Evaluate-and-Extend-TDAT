@@ -226,7 +226,7 @@ def main():
         test_loss, test_acc, clean_preds, labels = evaluate_standard(test_loader, model_test)
         pgd_loss, pgd_acc, case1_pct, case2_pct, case3_pct, case4_pct, case5_pct = evaluate_pgd(test_loader, model_test,clean_preds,labels, 10, 1)
         
-        fgsm_loss, fgsm_acc = evaluate_fgsm(test_loader, model_test, 1, 1)
+        fgsm_loss, fgsm_acc = evaluate_fgsm(test_loader, model_test, 1)
         cw_loss, cw_acc = evaluate_pgd_cw(test_loader, model_test, 10, 1)
         
         epoch_clean_list.append(test_acc)
@@ -240,7 +240,7 @@ def main():
         case4_list.append(case4_pct)
         case5_list.append(case5_pct)
 
-        logger.info('%d \t %.1f \t \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f',
+        logger.info('%d \t %.1f \t \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f \t \t %.4f \t %.4f \t %.4f \t %.4f \t %.4f',
                     epoch, epoch_time - start_epoch_time, lr,inner_loss/train_n, train_loss / train_n, train_acc / train_n, test_loss, test_acc, pgd_loss, pgd_acc, fgsm_loss, fgsm_acc, cw_loss, cw_acc, case1_pct, case2_pct, case3_pct, case4_pct, case5_pct)
         # save checkpoints
         ckpt_name = args.model + "_" + args.dataset + "_TDAT_robustAcc_" + str(pgd_acc) + "_clean_acc_" + str(test_acc) + ".pt"  
