@@ -29,10 +29,15 @@ cifar100_std = (1.0, 1.0, 1.0)
 # upper_limit = ((1 - mu) / std)
 # lower_limit = ((0 - mu) / std)
 
+
+imagenet_mean = (0.485, 0.456, 0.406)
+imagenet_std  = (0.229, 0.224, 0.225)
+
+
 def get_mu_std_limits(device):
     global mu, std, upper_limit, lower_limit
-    mu = torch.tensor(cifar100_mean).view(3, 1, 1).to(device)
-    std = torch.tensor(cifar100_std).view(3, 1, 1).to(device)
+    mu = torch.tensor(imagenet_mean).view(3, 1, 1).to(device)
+    std = torch.tensor(imagenet_std).view(3, 1, 1).to(device)
     upper_limit = ((1 - mu) / std)
     lower_limit = ((0 - mu) / std)
     return mu, std, upper_limit, lower_limit
@@ -92,17 +97,34 @@ def cifar10_get_loaders(dir_, batch_size, distributed=False):
 # cifar100_mean = (0.5071, 0.4865, 0.4409)
 # cifar100_std  = (0.2673, 0.2564, 0.2761)
 
+imagenet_mean = (0.485, 0.456, 0.406)
+imagenet_std  = (0.229, 0.224, 0.225)
 
 def cifar100_get_loaders(dir_, batch_size, distributed=False):
+    # train_tf = transforms.Compose([
+    #     transforms.RandomCrop(224, padding=4),
+    #     transforms.RandomHorizontalFlip(),
+    #     transforms.ToTensor(),
+    #     transforms.Normalize(imagenet_mean, imagenet_std),
+    # ])
+    # test_tf = transforms.Compose([
+    #     transforms.ToTensor(),
+    #     transforms.Normalize(imagenet_mean, imagenet_std),
+    # ])
+
     train_tf = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
+        transforms.Resize(224),  # resize to match model input
+        transforms.RandomCrop(224, padding=4),  # optional: keep augmentation
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize(cifar100_mean, cifar100_std),
+        transforms.Normalize((0.485, 0.456, 0.406),  # ImageNet mean
+                             (0.229, 0.224, 0.225))  # ImageNet std
     ])
     test_tf = transforms.Compose([
+        transforms.Resize(224),
         transforms.ToTensor(),
-        transforms.Normalize(cifar100_mean, cifar100_std),
+        transforms.Normalize((0.485, 0.456, 0.406),
+                             (0.229, 0.224, 0.225))
     ])
     train_set = datasets.CIFAR100(dir_, train=True,
                                   transform=train_tf, download=True)
@@ -191,7 +213,8 @@ def evaluate_pgd(device,test_loader, model, clean_preds, true_labels, attack_ite
         X, y = X.to(device), y.to(device)
         pgd_delta = attack_pgd(device,model, X, y, epsilon, alpha, attack_iters, restarts)
         with torch.no_grad():
-            output = model(normalize(X + pgd_delta))
+            #Remove normalization from the attack as normalization already happens in the model
+            output = model((X + pgd_delta))
             pred = output.argmax(dim=1)
 
             pgd_preds_list.append(pred)
