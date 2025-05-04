@@ -1,0 +1,35 @@
+{
+  "Epoch 1": {
+    "Clean Accuracy": 0.0,
+    "Adversarial Accuracy": 0.0,
+    "Cases": {
+      "Case 1": 0,
+      "Case 2": 0,
+      "Case 3": 0,
+      "Case 4": 124,
+      "Case 5": 748
+    }
+  },
+  "Epoch 2": {
+    "Clean Accuracy": 0.0,
+    "Adversarial Accuracy": 0.0,
+    "Cases": {
+      "Case 1": 0,
+      "Case 2": 0,
+      "Case 3": 0,
+      "Case 4": 122,
+      "Case 5": 750
+    }
+  },
+  "Epoch 3": {
+    "Clean Accuracy": 0.0,
+    "Adversarial Accuracy": 0.0,
+    "Cases": {
+      "Case 1": 0,
+      "Case 2": 0,
+      "Case 3": 0,
+      "Case 4": 117,
+      "Case 5": 755
+    }
+  }
+}
