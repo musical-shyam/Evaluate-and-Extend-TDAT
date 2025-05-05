@@ -3,14 +3,18 @@
 Code for CS 680A: AI Security Final Project
 
 ## Contributors
-- Sai Manikandan
+- Sai Manikandan (gsai29)
 - Shyam Kannan (musical-shyam)
 
 ## Environments
 
-- python 3.7.13 (changed)
-- torch 1.13.1 (changed)
-- torchvision 0.13 (changed)
+- python 
+- torch    
+- torchvision
+- numpy>=1.21.0
+- Pillow>=8.0
+- tqdm
+- matplotlib 
 
 ## Files
 

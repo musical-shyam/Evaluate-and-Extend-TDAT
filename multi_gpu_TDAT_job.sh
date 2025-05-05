@@ -32,4 +32,4 @@ srun torchrun \
      --rdzv_id=$RANDOM \
      --rdzv_backend=c10d \
      --rdzv_endpoint=$MASTER_ADDR:$MASTER_PORT \
-     TDAT.py --batch-m 0.75 --delta-init "random" --out-dir "CIFAR100" --log "DeiT.log" --model "DeiT-Small" --lamda 0.6 --inner-gamma 0.15 --outer-gamma 0.15 --save-epoch 1 --dataset CIFAR100
+     multi_gpu_TDAT.py --batch-m 0.75 --delta-init "random" --out-dir "CIFAR100" --log "DeiT.log" --model "DeiT-Small" --lamda 0.6 --inner-gamma 0.15 --outer-gamma 0.15 --save-epoch 1 --dataset CIFAR100

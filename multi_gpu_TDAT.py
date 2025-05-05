@@ -10,7 +10,7 @@ from torch.nn import functional as F
 from models import *
 import random
 from torch.autograd import Variable
-from utils_multi_gpu import *
+from multi_gpu_utils import *
 import math
 
 import torch.distributed as dist

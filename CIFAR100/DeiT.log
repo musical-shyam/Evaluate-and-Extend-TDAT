@@ -1,2 +1,0 @@
-[2025/04/25 03:08:28] - Namespace(model='DeiT-Small', batch_size=128, data_dir='./data', epochs=110, lr_schedule='multistep', milestone1=100, milestone2=105, lr_min=0.0, lr_max=0.1, weight_decay=0.0005, momentum=0.9, seed=0, save_epoch=1, dataset='CIFAR100', inner_gamma=0.15, outer_gamma=0.15, beta=0.6, lamda=0.6, batch_m=0.75, epsilon=8, alpha=8, delta_init='random', out_dir='CIFAR100', log='DeiT.log')
-[2025/04/25 03:08:30] - Epoch 	 Seconds 	 LR 	 Inner Loss 	 Train Loss 	 Train Acc 	 Test Loss 	 Test Acc 	 PGD Loss 	 PGD Acc
