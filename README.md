@@ -3,8 +3,18 @@
 Code for CS 680A: AI Security Final Project
 
 ## Contributors
+
 - Sai Manikandan (gsai29)
+    - Finetuning Bert Models
+    - Finetuning Deit-models
+    - Working on multi-gpu code
+    - Working on Report
 - Shyam Kannan (musical-shyam)
+    - Training DeiT-Models
+    - Adding Taxonomy code
+    - Scripting Graphs code
+    - Working on presentation
+    - github documentation
 
 ## Environments
 
@@ -16,9 +26,9 @@ Code for CS 680A: AI Security Final Project
 - tqdm
 - matplotlib 
 
-## Files
+## Files and Folders
 
-### TDAT.py
+### Running TDAT code
 
 - Train ResNet18 on CIFAR-10 with TDAT.
 
@@ -28,24 +38,33 @@ Code for CS 680A: AI Security Final Project
 
 `python TDAT.py --epochs 2 --batch-m 0.75 --delta-init "random" --out-dir "TDAT" --log "DeiT.log" --model "DeiT-Small" --lamda 0.6 --inner-gamma 0.15 --outer-gamma 0.15 --save-epoch 1 --dataset CIFAR100`
 
+### Running AT code
+
+- Train ResNet18 on CIFAR-100 with AT.
+
+`python AT.py --epochs 1 --delta-init "random" --out-dir "AT" --log "ResNet_AT.log" --model "ResNet18" --save-epoch 1 --dataset CIFAR100`
+
 - Train Deit-Small on CIFAR-100 with AT.
 
 `python AT.py --epochs 1 --delta-init "random" --out-dir "AT" --log "Deit_AT.log" --model "DeiT-Small" --save-epoch 1 --dataset CIFAR100`
 
-- Train Deit-Small on CIFAR-100 (normal)
-
-`python Normal.py --epochs 1 --lr_schedule cyclic --out-dir "Normal" --log "Deit_Normal.log" --model "DeiT-Small" --save-epoch 1 --dataset CIFAR100`
+### multi_gpu_files
 
 ### models
 
-- This folder holds the codes for backbones.
+- This folder holds the codes for backbone architectures.
 
-### CIFAR10/CIFAR100/TinyImageNet/ImageNet100
+### DeiT_results/Resnet_results/DistilBert_results
 
-- These folders store training logs and outputs for the respective datasets.
+- These folders store training logs, outputs and different graphs for the respective datasets.
 
-## Trained Models
-[Checkpoint on CIFAR-10 with our method](https://drive.google.com/file/d/1fPYwjz2V9wibfdWlopip0tfK4IB0KS9o/view?usp=drive_link)
+### DistilBert_scripts
+
+- This folder stores the archived training code for Distilbert model
+
+### miscellaneous_scripts
+
+- This folder stores the code for some of the experimentations and graphs plotted in the project
 
 ## Citation
 If you are insterested in this work, please consider citing:
