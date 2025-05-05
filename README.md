@@ -6,7 +6,7 @@ Code for CS 680A: AI Security Final Project
 
 - Sai Manikandan (gsai29)
   
-Sai handled the model fine‑tuning and our Spiedie setup. He tuned every BERT variant we used and then fine‑tuned the DeiT vision models. He also took my single‑GPU training code, adapted it for Spiedie, and got the finetuned DeiT runs working smoothly across multiple GPUs. On top of that, he integrated the AutoAttack adversarial evaluation into our existing pipeline and wrote the main parts of the project report, making sure our methods and results are clear.
+Sai handled the model fine‑tuning of our Bert and DeiT vision models. He also took my single‑GPU training code, adapted it for Spiedie, and got the finetuned DeiT runs working smoothly across multiple GPUs. On top of that, he integrated the AutoAttack adversarial evaluation into our existing pipeline and wrote the main parts of the project report, making sure our methods and results are clear.
 
 - Shyam Kannan (musical-shyam)
   
