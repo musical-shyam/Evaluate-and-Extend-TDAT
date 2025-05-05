@@ -5,9 +5,11 @@ Code for CS 680A: AI Security Final Project
 ## Contributors
 
 - Sai Manikandan (gsai29)
+  
 Sai handled the model fine‑tuning and our Spiedie setup. He tuned every BERT variant we used and then fine‑tuned the DeiT vision models. He also took my single‑GPU training code, adapted it for Spiedie, and got the finetuned DeiT runs working smoothly across multiple GPUs. On top of that, he integrated the AutoAttack adversarial evaluation into our existing pipeline and wrote the main parts of the project report, making sure our methods and results are clear.
 
 - Shyam Kannan (musical-shyam)
+  
 I built the DeiT pipelines from the ground up. I coded the AT and TDAT versions of the DeiT models from scratch, trained the full set of DeiTs, and added the taxonomy module that sorts each sample into its five cases. I wrote the scripts that turn our logs into the final graphs, created the presentation slides, and updated the GitHub docs so anyone who clones the repo can run everything end‑to‑end.
 
 ## Environments
